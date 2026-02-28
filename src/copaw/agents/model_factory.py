@@ -73,13 +73,45 @@ def _create_file_block_support_formatter(
         """Formatter with file block support for tool results."""
 
         async def _format(self, msgs):
-            """Override to sanitize tool messages before formatting.
+            """Override to sanitize tool messages and preserve thinking blocks.
 
-            This prevents OpenAI API errors from improperly paired
-            tool messages.
+            - Sanitizes improperly paired tool messages.
+            - After base formatting, injects ``reasoning_content`` from
+              thinking blocks into assistant messages so that APIs like
+              Kimi K2.5 (which require it) don't reject the request.
             """
             msgs = _sanitize_tool_messages(msgs)
-            return await super()._format(msgs)
+
+            # Collect thinking content per assistant msg (in order).
+            assistant_thinking: list[str] = []
+            for msg in msgs:
+                if msg.role == "assistant":
+                    parts = [
+                        b.get("thinking", "")
+                        for b in msg.get_content_blocks()
+                        if b.get("type") == "thinking"
+                    ]
+                    assistant_thinking.append(
+                        "\n".join(p for p in parts if p),
+                    )
+
+            formatted = await super()._format(msgs)
+
+            # Inject reasoning_content into formatted assistant messages.
+            if assistant_thinking:
+                asst_idx = 0
+                for fmt_msg in formatted:
+                    if fmt_msg.get("role") == "assistant":
+                        if (
+                            asst_idx < len(assistant_thinking)
+                            and assistant_thinking[asst_idx]
+                        ):
+                            fmt_msg["reasoning_content"] = (
+                                assistant_thinking[asst_idx]
+                            )
+                        asst_idx += 1
+
+            return formatted
 
         @staticmethod
         def convert_tool_result_to_string(
