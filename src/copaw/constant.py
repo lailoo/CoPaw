@@ -61,6 +61,10 @@ MEMORY_COMPACT_RATIO = float(
     os.environ.get("COPAW_MEMORY_COMPACT_RATIO", "0.7"),
 )
 
+# Message metadata field names
+# Used for preserving API-specific fields during message formatting
+REASONING_CONTENT_FIELD = "reasoning_content"
+
 DASHSCOPE_BASE_URL = os.environ.get(
     "DASHSCOPE_BASE_URL",
     "https://dashscope.aliyuncs.com/compatible-mode/v1",

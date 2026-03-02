@@ -229,6 +229,15 @@ class TimestampedDashScopeChatFormatter(DashScopeChatFormatter):
                     content_blocks.append({"text": text_content})
                     msg_token_count += safe_count_str_tokens(text_content)
 
+                elif typ == "thinking":
+                    # Handle ThinkingBlock - extract thinking content as text
+                    # for better summary quality in memory compaction
+                    thinking_content = block.get("thinking", "")
+                    if thinking_content:
+                        # Add thinking content as regular text for summarization
+                        content_blocks.append({"text": thinking_content})
+                        msg_token_count += safe_count_str_tokens(thinking_content)
+
                 elif typ in ["image", "audio", "video"]:
                     content_blocks.append(
                         _format_dashscope_media_block(
